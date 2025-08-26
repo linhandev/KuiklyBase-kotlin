@@ -57,6 +57,11 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "21"
+      - name: Env info (Linux)
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          apt update
+          apt install git
 
       - name: Env info (macOS)
         if: ${{ runner.os == 'macOS' }}
