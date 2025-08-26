@@ -74,8 +74,8 @@ jobs:
           # /usr/libexec/java_home -v 1.8
           # /usr/libexec/java_home -V
 
-      - name: Env info (Linux)
-        if: ${{ runner.os == 'Linux' }}
+      - name: Env info (non-mac)
+        if: ${{ runner.os != 'macOS' }}
         run: |
           set -ex
           uname -a
