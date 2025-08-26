@@ -61,7 +61,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           apt update
-          apt install git
+          apt install git -y
 
       - name: Env info (macOS)
         if: ${{ runner.os == 'macOS' }}
