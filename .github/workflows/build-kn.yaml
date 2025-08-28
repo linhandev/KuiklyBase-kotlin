@@ -97,8 +97,12 @@ jobs:
           git clean -dfx
 
       - name: Clean build output
-
-        run: rm -rf ./build/
+        run: |
+          # spare ./build/cache which contains gradle and konan cache
+          mv ./build/cache ./build_cache_tmp
+          rm -rf ./build/*
+          mkdir -p ./build
+          mv ./build_cache_tmp ./build/cache
 
       - name: Publish Kotlin Native
         uses: nick-fields/retry@v2
