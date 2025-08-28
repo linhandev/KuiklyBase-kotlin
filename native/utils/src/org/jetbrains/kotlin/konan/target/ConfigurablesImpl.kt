@@ -34,57 +34,7 @@ class OhosConfigurablesImpl(
     properties: Properties,
     dependenciesRoot: String?,
     progressCallback: ProgressCallback,
-) : OhosConfigurables, KonanPropertiesLoader(target, properties, dependenciesRoot, progressCallback = progressCallback) {
-
-    override val targetSysRoot: String? by lazy {
-        // Prefer to use internal packaged sysroot. 
-        val internalSysRoot = super<OhosConfigurables>.targetSysRoot
-        // The file '.invalid' indicates that the package is invalid.
-        if (!File(absolute(internalSysRoot), ".invalid").exists()) {
-            internalSysRoot
-        } else {
-            // Use sysroot from local SDK when the internal packaged is not available. 
-            val sdkRoot = getLocalSdkPath()
-            if (File(sdkRoot).exists()) {
-                checkOhosSdkVersion(sdkRoot)
-                File(sdkRoot, "native/sysroot").path
-            } else {
-                error(
-                    "OHOS SDK is not found. It is required to build platform libs for OHOS.\n" +
-                            "Set 'OHOS_SDK_HOME=/path/to/openharmony' or 'DEVECO_STUDIO_HOME=/path/to/DevEco-Studio' in the system properties" +
-                            "or install DevEco Studio in the default location '/Applications/DevEco-Studio.app'. "
-                )
-            }
-        }
-    }
-
-    private fun getLocalSdkPath(): String {
-        if (HostManager.host.family.isAppleFamily) {
-            return getSystemValue("OHOS_SDK_HOME") ?: File(
-                getSystemValue("DEVECO_STUDIO_HOME") ?: "/Applications/DevEco-Studio.app",
-                "Contents/sdk/default/openharmony"
-            ).path
-        } else {
-            throw IllegalStateException("Unsupported host: ${HostManager.host}")
-        }
-    }
-
-    private fun checkOhosSdkVersion(sdkRoot: String) {
-        if (properties.getProperty("ignoreOhosSdkVersionCheck") != "true") {
-            properties.getProperty("minimalOhosSdkVersion")?.toInt()?.let { minimalOhosSdkVersion ->
-                val sdkPkg = File(sdkRoot, "native/oh-uni-package.json").readText()
-                val apiVersion = Regex(""""apiVersion": "(\d+)"""").find(sdkPkg)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: Int.MAX_VALUE
-                if (apiVersion < minimalOhosSdkVersion) {
-                    error("Unsupported OHOS SDK version $apiVersion(bundled in $sdkRoot), minimal supported version is $minimalOhosSdkVersion.")
-                }
-            }
-        }
-    }
-
-    private fun getSystemValue(key: String): String? {
-        return (System.getProperty(key) ?: System.getenv(key))?.takeIf { it.isNotBlank() }
-    }
-}
+) : OhosConfigurables, KonanPropertiesLoader(target, properties, dependenciesRoot, progressCallback = progressCallback)
 
 fun loadConfigurables(
     target: KonanTarget,

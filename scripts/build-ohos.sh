@@ -21,14 +21,18 @@ START_TIME=$(date +%s)
 
 # go to project root.
 SCRIPT_DIR=$(cd $(dirname $0) && pwd -P)
-ROOT_DIR=$SCRIPT_DIR/../
-cd $ROOT_DIR
-echo "cd $ROOT_DIR"
+ROOT_DIR=$(cd "$SCRIPT_DIR"/../ && pwd -P)
+cd "$ROOT_DIR"
 
 # settings
 DEPLOY_VERSION=${DEPLOY_VERSION:-2.2.255-SNAPSHOT}
 export KONAN_DATA_DIR=${KONAN_DATA_DIR:-$ROOT_DIR/build/cache/konan}
 export GRADLE_USER_HOME=${GRADLE_USER_HOME:-$ROOT_DIR/build/cache/gradle}
+
+echo ROOT_DIR="$ROOT_DIR"
+echo DEPLOY_VERSION="$DEPLOY_VERSION"
+env | grep KONAN_DATA_DIR
+env | grep GRADLE_USER_HOME
 
 if [ -z "$JDK_18" ] && [[ "$(uname -s)" == "Darwin" ]]; then
   export JDK_18=$(/usr/libexec/java_home -v 1.8)
@@ -75,7 +79,7 @@ function GRADLE_NATIVE() {
       -Pbootstrap.local=true \
       -Pbootstrap.local.version="$DEPLOY_VERSION" \
       --dependency-verification=off \
-      "$@"      
+      "$@"
 }
 
 readHostArch

@@ -57,7 +57,8 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "21"
-      - name: Env info (Linux)
+
+      - name: Setup env (Linux)
         if: ${{ runner.os == 'Linux' }}
         run: |
           apt update
