@@ -99,10 +99,14 @@ jobs:
       - name: Clean build output
         run: |
           # spare ./build/cache which contains gradle and konan cache
-          mv ./build/cache ./build_cache_tmp
+          if [ -d ./build/cache ]; then
+            mv ./build/cache ./build_cache_tmp
+          fi
           rm -rf ./build/*
           mkdir -p ./build
-          mv ./build_cache_tmp ./build/cache
+          if [ -d ./build_cache_tmp ]; then
+            mv ./build_cache_tmp ./build/cache
+          fi
 
       - name: Publish Kotlin Native
         uses: nick-fields/retry@v2
