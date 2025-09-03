@@ -199,6 +199,9 @@ __attribute__((format(printf, 6, 7)))
 static size_t snprintf_with_addr(char* buf, size_t size, size_t frame, const void* addr, bool is_inline, const char *format, ...) {
     std_support::span<char> buffer{buf, size};
     const char* image = "???";
+#ifdef KONAN_OHOS
+    void* base_address = nullptr;
+#endif
     char symbol[512];
     strcpy(symbol, "0x0");
     ptrdiff_t symbol_offset = reinterpret_cast<ptrdiff_t>(addr);
@@ -215,6 +218,18 @@ static size_t snprintf_with_addr(char* buf, size_t size, size_t frame, const voi
         } else {
             image = tmp + 1;
         }
+    }
+
+#ifdef KONAN_OHOS
+    base_address = info.dli_fbase;
+#endif
+
+#endif
+
+#ifdef KONAN_OHOS
+    if (base_address != nullptr) {
+        auto diff = reinterpret_cast<uintptr_t>(addr) - reinterpret_cast<uintptr_t>(base_address);
+        addr = reinterpret_cast<void*>(diff);
     }
 #endif
 
