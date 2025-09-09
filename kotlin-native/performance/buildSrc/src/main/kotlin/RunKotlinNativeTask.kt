@@ -68,19 +68,20 @@ open class RunKotlinNativeTask @Inject constructor(private val linkTask: Task,
         val useCset = project.findProperty("useCset")?.toString()?.toBoolean() ?: false
 
         project.exec {
-            when {
-                useCset -> {
-                    executable = "cset"
-                    args("shield", "--exec", "--", this@RunKotlinNativeTask.executable)
-                }
-                remoteHost != null -> {
-                    executable = "ssh"
-                    val remoteExecutable = this@RunKotlinNativeTask.executable.split("/").last()
-                    args (remoteHost, "$remoteHostFolder/$remoteExecutable")
-                }
-                else -> executable = this@RunKotlinNativeTask.executable
-            }
-
+//            when {
+//                useCset -> {
+//                    executable = "cset"
+//                    args("shield", "--exec", "--", this@RunKotlinNativeTask.executable)
+//                }
+//                remoteHost != null -> {
+//                    executable = "ssh"
+//                    val remoteExecutable = this@RunKotlinNativeTask.executable.split("/").last()
+//                    args (remoteHost, "$remoteHostFolder/$remoteExecutable")
+//                }
+//                else -> executable = this@RunKotlinNativeTask.executable
+//            }
+            executable = "hdc"
+            args("shell", "LD_LIBRARY_PATH=/data/", "/data/${this@RunKotlinNativeTask.executable.split("/").last()}")
             args(argumentsList)
             args("-f", benchmark)
             // Logging with application should be done only in case it controls running benchmarks itself.
@@ -90,8 +91,13 @@ open class RunKotlinNativeTask @Inject constructor(private val linkTask: Task,
             }
             args("-w", warmupCount.toString())
             args("-r", repeatCount.toString())
+
+            // Print final args value
+            println("hlhl final args: ${args}")
+
             standardOutput = output
         }
+        println("hlhl output: ${output.toString()}")
         return output.toString().substringAfter("[").removeSuffix("]")
     }
 
@@ -119,26 +125,35 @@ open class RunKotlinNativeTask @Inject constructor(private val linkTask: Task,
     @TaskAction
     fun run() {
         val output = ByteArrayOutputStream()
-        remoteHost?.let {
-            requireNotNull(remoteHostFolder) {"Please provide folder on remote host with -PremoteHostFolder=<folder>"}
-            project.exec {
-                executable = "scp"
-                args(this@RunKotlinNativeTask.executable, "$it:$remoteHostFolder")
-            }
-        }
+
+        println("hlhl ${this@RunKotlinNativeTask.executable}")
+
         project.exec {
-            if (remoteHost != null) {
-                executable = "ssh"
-                val remoteExecutable = this@RunKotlinNativeTask.executable.split("/").last()
-                args (remoteHost, "$remoteHostFolder/$remoteExecutable")
-            } else {
-                executable = this@RunKotlinNativeTask.executable
-            }
-            if (baseOnly) {
-                args("baseOnlyList")
-            } else {
-                args("list")
-            }
+            executable = "hdc"
+            args("file", "send", this@RunKotlinNativeTask.executable, "/data/")
+        }
+
+        project.exec {
+            executable = "hdc"
+            args("shell", "chmod", "777", "/data/${this@RunKotlinNativeTask.executable.toString().split("/").last()}")
+        }
+
+        project.exec {
+//            if (remoteHost != null) {
+//                executable = "ssh"
+//                val remoteExecutable = this@RunKotlinNativeTask.executable.split("/").last()
+//                args (remoteHost, "$remoteHostFolder/$remoteExecutable")
+//            } else {
+//                executable = this@RunKotlinNativeTask.executable
+//            }
+            executable = "hdc"
+            args("shell", "LD_LIBRARY_PATH=/data/", "/data/${this@RunKotlinNativeTask.executable.toString().split("/").last()}", "list")
+
+//            if (baseOnly) {
+//                args("baseOnlyList")
+//            } else {
+//                args("list")
+//            }
             standardOutput = output
         }
         val benchmarks = output.toString().lines()
@@ -156,6 +171,7 @@ open class RunKotlinNativeTask @Inject constructor(private val linkTask: Task,
             }
         }
 
+        println("hlhl ${outputFileName}")
         File(outputFileName).printWriter().use { out ->
             out.println("[${results.joinToString(",")}]")
         }

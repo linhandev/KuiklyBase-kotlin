@@ -4,7 +4,7 @@
  */
 
 import org.jetbrains.benchmarksLauncher.*
-import kotlinx.cli.*
+//import kotlinx.cli.*
 
 expect class NumericalLauncher() : Launcher {
     override val baseBenchmarksSet: MutableMap<String, AbstractBenchmarkEntry>
@@ -13,9 +13,9 @@ expect class NumericalLauncher() : Launcher {
 fun main(args: Array<String>) {
     val launcher = NumericalLauncher()
     BenchmarksRunner.runBenchmarks(args, { arguments: BenchmarkArguments ->
-        if (arguments is BaseBenchmarkArguments) {
+//        if (arguments is BaseBenchmarkArguments) {
             launcher.launch(arguments.warmup, arguments.repeat, arguments.prefix,
                     arguments.filter, arguments.filterRegex, arguments.verbose)
-        } else emptyList()
+//        } else emptyList()
     }, benchmarksListAction = launcher::benchmarksListAction)
 }
