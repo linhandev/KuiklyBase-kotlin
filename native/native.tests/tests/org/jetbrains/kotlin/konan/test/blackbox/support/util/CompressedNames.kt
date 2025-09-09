@@ -30,6 +30,7 @@ internal val Family.compressedName: Char
         Family.LINUX -> 'l'
         Family.MINGW -> 'm'
         Family.ANDROID -> 'a'
+        Family.OHOS -> 'h'
     }
 
 internal val Architecture.compressedName: String
