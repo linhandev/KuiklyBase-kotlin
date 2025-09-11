@@ -130,6 +130,8 @@ internal val konanTargetNameMapping = mapOf(
     "linux_arm32_hfp" to "linuxArm32Hfp",
     "mingw_x86" to "mingwX86",
     "wasm-wasi" to "wasmWasi",
+    // region Tencent Code
     "wasm-js" to "wasmJs",
     "ohos_arm64" to "ohosArm64"
+    // endregion
 )

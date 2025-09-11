@@ -106,17 +106,20 @@ abstract class ExecClang @Inject constructor(
     }
 
     fun execKonanClang(target: String, action: Action<in ExecSpec>): ExecResult {
+        // region Tencent Code
         val args = clangArgsForCppRuntime(target) + fixBrokenMacroExpansionInXcode15_3(target)
         val konanTarget = platformManager.targetManager(target).target
         return if (konanTarget.family == Family.OHOS) {
             this.execToolchainClang(konanTarget, args, action)
         } else {
             this.execClang(args, action)
-        }    
+        }
+        // endregion
     }
 
     // The toolchain ones execute clang from the toolchain.
 
+    // region Tencent Code
     fun execToolchainClang(target: KonanTarget, defaultArgs: List<String>? = null, action: Action<in ExecSpec>): ExecResult {
         val extendedAction = Action<ExecSpec> {
             action.execute(this)
@@ -127,6 +130,7 @@ abstract class ExecClang @Inject constructor(
         }
         return execOperations.exec(extendedAction)
     }
+    // endregion
 
     private fun execClang(defaultArgs: List<String>, action: Action<in ExecSpec>): ExecResult {
         val extendedAction = Action<ExecSpec> {

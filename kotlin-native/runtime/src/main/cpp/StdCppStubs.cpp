@@ -18,7 +18,9 @@
 #include "Porting.h"
 #include "Common.h"
 
+// region Tencent Code
 #if (KONAN_LINUX && !KONAN_OHOS) || KONAN_WINDOWS || KONAN_OHOS
+// endregion
 // This function replaces `__cxa_demangle` defined in GNU libstdc++
 // by adding `--defsym` flag in `konan.properties`.
 // This allows to avoid linking `__cxa_demangle` and its dependencies, thus reducing binary size.
@@ -30,6 +32,7 @@ RUNTIME_EXPORT RUNTIME_WEAK extern "C" char* Konan_cxa_demangle(
   return nullptr;
 }
 
+// region Tencent Code
 #ifndef KONAN_OHOS
 namespace std {
 RUNTIME_WEAK void __throw_length_error(const char* __s __attribute__((unused))) {
@@ -38,10 +41,13 @@ RUNTIME_WEAK void __throw_length_error(const char* __s __attribute__((unused))) 
 
 }  // namespace std
 #endif
+// endregion
 
 #endif // KONAN_LINUX || KONAN_WINDOWS || KONAN_OHOS
 
+// region Tencent Code
 #if KONAN_LINUX || KONAN_OHOS
+// endregion
 
 #include <system_error>
 
