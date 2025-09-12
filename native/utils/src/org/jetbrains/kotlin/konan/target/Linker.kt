@@ -176,6 +176,7 @@ class AndroidLinker(targetProperties: AndroidConfigurables)
     }
 }
 
+// region Tencent Code
 class OhosLinker(targetProperties: OhosConfigurables) : LinkerFlags(targetProperties), OhosConfigurables by targetProperties {
 
     private val specificLibs = abiSpecificLibraries.map { "-L${absoluteTargetSysRoot}/$it" }
@@ -243,6 +244,7 @@ class OhosLinker(targetProperties: OhosConfigurables) : LinkerFlags(targetProper
         })
     }
 }
+// endregion
 
 class MacOSBasedLinker(targetProperties: AppleConfigurables)
     : LinkerFlags(targetProperties), AppleConfigurables by targetProperties {
@@ -573,7 +575,9 @@ fun linker(configurables: Configurables): LinkerFlags =
             is GccConfigurables -> GccBasedLinker(configurables)
             is AppleConfigurables -> MacOSBasedLinker(configurables)
             is AndroidConfigurables-> AndroidLinker(configurables)
+            // region Tencent Code
             is OhosConfigurables -> OhosLinker(configurables)
+            // endregion
             is MingwConfigurables -> MingwLinker(configurables)
             else -> error("Unexpected target: ${configurables.target}")
         }

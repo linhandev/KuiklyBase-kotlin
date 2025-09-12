@@ -405,6 +405,7 @@ interface KotlinMultiplatformSourceSetConventions {
      */
     val NamedDomainObjectContainer<KotlinSourceSet>.linuxTest: NamedDomainObjectProvider<KotlinSourceSet>
 
+    // region Tencent Code
     /**
      * Static accessor for shared kotlin Source Set between all declared OHOS targets.
      * Declare at least one of the targets mentioned above to access this source set.
@@ -452,6 +453,7 @@ interface KotlinMultiplatformSourceSetConventions {
      * @since 1.9.20
      */
     val NamedDomainObjectContainer<KotlinSourceSet>.ohosTest: NamedDomainObjectProvider<KotlinSourceSet>
+    // endregion
 
     /**
      * Static accessor for shared kotlin Source Set between all declared Mingw targets.
@@ -1349,6 +1351,7 @@ interface KotlinMultiplatformSourceSetConventions {
      */
     val NamedDomainObjectContainer<KotlinSourceSet>.mingwX64Test: NamedDomainObjectProvider<KotlinSourceSet>
 
+    // region Tencent Code
     /**
      * Static accessor for the main Kotlin Source Set of ohosArm64 target.
      * Declare ohosArm64 target to access this source set.
@@ -1394,6 +1397,7 @@ interface KotlinMultiplatformSourceSetConventions {
      * @since 2.0.20
      */
     val NamedDomainObjectContainer<KotlinSourceSet>.ohosArm64Test: NamedDomainObjectProvider<KotlinSourceSet>
+    // endregion
 
     /**
      * Static accessor for the main Kotlin Source Set of tvosArm64 target.

@@ -68,6 +68,7 @@ SymRecordList* symbols = nullptr;
 // Unfortunately, symbol tables are stored in ELF sections not mapped
 // during regular execution, so we have to map binary ourselves.
 Elf_Ehdr* findElfHeader() {
+// region Tencent Code
 #if USE_ELF_SYMBOLS
   Dl_info info;
   if (dladdr((void*)&findElfHeader, &info) == 0 || info.dli_fname == nullptr) {
@@ -78,6 +79,7 @@ Elf_Ehdr* findElfHeader() {
   // TODO: elf kexe should also use this
   int fd = open("/proc/self/exe", O_RDONLY);
 #endif
+// endregion
   if (fd < 0) return nullptr;
   struct stat fd_stat;
   if (fstat(fd, &fd_stat) < 0) return nullptr;

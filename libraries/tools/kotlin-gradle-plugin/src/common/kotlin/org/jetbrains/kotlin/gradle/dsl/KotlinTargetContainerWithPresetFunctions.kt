@@ -27,6 +27,7 @@ import org.jetbrains.kotlin.konan.target.DEPRECATED_TARGET_MESSAGE
 @KotlinGradlePluginPublicDsl
 interface KotlinTargetContainerWithPresetFunctions : KotlinTargetsContainer {
 
+    // region Tencent Code
     fun ohosArm64(
         name: String = "ohosArm64",
         configure: KotlinNativeTarget.() -> Unit = { }
@@ -35,6 +36,7 @@ interface KotlinTargetContainerWithPresetFunctions : KotlinTargetsContainer {
     fun ohosArm64(name: String) = ohosArm64(name) { }
     fun ohosArm64(name: String, configure: Action<KotlinNativeTarget>) = ohosArm64(name) { configure.execute(this) }
     fun ohosArm64(configure: Action<KotlinNativeTarget>) = ohosArm64 { configure.execute(this) }
+    // endregion
 
     fun jvm(
         name: String = "jvm",
@@ -427,6 +429,7 @@ internal abstract class DefaultKotlinTargetContainerWithPresetFunctions @Inject 
     val presets: NamedDomainObjectCollection<InternalKotlinTargetPreset<*>> =
         objectFactory.domainObjectContainer(InternalKotlinTargetPreset::class.java)
 
+    // region Tencent Code
     override fun ohosArm64(
         name: String,
         configure: KotlinNativeTarget.() -> Unit
@@ -436,6 +439,7 @@ internal abstract class DefaultKotlinTargetContainerWithPresetFunctions @Inject 
         presets.getByName("ohosArm64") as KotlinNativeTargetPreset,
         configure
     )
+    // endregion
 
     override fun jvm(
         name: String,

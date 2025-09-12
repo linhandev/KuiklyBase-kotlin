@@ -132,6 +132,7 @@ interface GccConfigurables : Configurables, ClangFlags {
 
 interface AndroidConfigurables : Configurables, ClangFlags
 
+// region Tencent Code
 interface OhosConfigurables : Configurables, ClangFlags {
     val libClangArgs get() = targetList("libClangArgs")
     override val targetToolchain get() = hostTargetString("targetToolchain")
@@ -147,6 +148,7 @@ interface OhosConfigurables : Configurables, ClangFlags {
     val absoluteLinker get() = absolute(linker)
 
 }
+// endregion
 
 interface WasmConfigurables : Configurables, ClangFlags, LldFlags
 

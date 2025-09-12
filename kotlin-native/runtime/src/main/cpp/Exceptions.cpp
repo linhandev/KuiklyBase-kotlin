@@ -32,6 +32,7 @@
 #include "Utils.hpp"
 #include "ObjCExceptions.h"
 
+// region Tencent Code
 #ifdef KONAN_OHOS
 // TODO: When ohos dfx raises length limit on set_fatal_message, print the full kotlin stack trace instead
 // of just the addresses.
@@ -68,6 +69,8 @@ void ReportBacktraceToOhosLog(KRef exception) {
 }
 
 #endif
+// endregion
+
 // Defined in RuntimeUtils.kt
 extern "C" void Kotlin_runUnhandledExceptionHook(KRef exception);
 extern "C" void ReportUnhandledException(KRef exception);
@@ -117,9 +120,11 @@ void RUNTIME_NORETURN terminateWithUnhandledException(KRef exception) {
 #if KONAN_REPORT_BACKTRACE_TO_IOS_CRASH_LOG
         ReportBacktraceToIosCrashLog(exception);
 #endif
+// region Tencent Code
 #ifdef KONAN_OHOS
         ReportBacktraceToOhosLog(exception);
 #endif
+// endregion
 
         // Best effort to make sure the reported exception gets actually printed:
         konan::consoleFlush();
