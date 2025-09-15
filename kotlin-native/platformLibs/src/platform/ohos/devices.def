@@ -1,5 +1,6 @@
 depends = posix
 package = platform.devices
+language = C++
 headers = ConnectivityKit/bluetooth/oh_bluetooth.h \
           sensors/oh_sensor_type.h \
           sensors/vibrator.h \
@@ -48,3 +49,4 @@ headers = ConnectivityKit/bluetooth/oh_bluetooth.h \
           ohcamera/video_output.h \
           ohcamera/preview_output.h \
           ohcamera/photo_native.h
+linkerOpts = -lability_access_control -ltelephony_data
