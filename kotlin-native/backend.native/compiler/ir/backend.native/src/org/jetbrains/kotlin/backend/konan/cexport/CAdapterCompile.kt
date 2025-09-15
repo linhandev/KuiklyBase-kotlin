@@ -21,4 +21,3 @@ fun produceCAdapterBitcode(clang: ClangArgs, cppFile: File, bitcodeFile: File) {
     )
     Command(clangCommand).execute()
 }
-
