@@ -1,0 +1,273 @@
+name: "Black Box Test"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Kotlin version to build"
+        required: true
+        default: "2.0.255-SNAPSHOT"
+        type: string
+      nuke-cache:
+        description: "Clean all caches we can think of"
+        required: false
+        default: false
+        type: boolean
+  push:
+    paths:
+      - .github/workflows/build-time-opt-test.yaml
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: '0 2 * * *'
+  
+env:
+  DEFAULT_VERSION: "2.0.255-SNAPSHOT"
+  DEFAULT_NUKE_CACHE: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # - runs-on: [self-hosted, macOS, X64, kn-builder]
+          - runs-on: [self-hosted, macOS, ARM64, kn-builder]
+          # - runs-on: [self-hosted, Linux, X64, kn-builder]
+          #   container: ubuntu:24.04
+          # - runs-on: [self-hosted, Windows, X64, kn-builder]
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - name: Validate PR title
+        if: github.event_name == 'pull_request'
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          if [[ ! "$TITLE" =~ ^\[(module|parallel|internal|ci)\] ]]; then
+            echo -e "Error: PR title must start with [module], [parallel], [internal], or [ci]\nChange the pr title, close and reopen this PR to trigger the checks again." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Check xcode
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+
+          # Selected Xcode version should be at least 16.0
+          XCODE_VERSION=$(xcodebuild -version | head -n1 | sed 's/Xcode //')
+          REQUIRED_VERSION="16.0"
+
+          if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$XCODE_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+            echo "Error: Xcode version $XCODE_VERSION is less than required version $REQUIRED_VERSION"
+            exit 1
+          fi
+
+          # Check Xcode 15 is present and the version is indeed 15.0
+          if [ ! -d "/Applications/Xcode-15.0.app" ]; then
+            echo "Error: Xcode-15.0.app not found in /Applications"
+            exit 1
+          fi
+
+          XCODE_VERSION=$(/Applications/Xcode-15.0.app/Contents/Developer/usr/bin/xcodebuild -version | head -n1 | sed 's/Xcode //')
+          if [ "$XCODE_VERSION" != "15.0" ]; then
+            echo "Error: Xcode-15.0 version check failed, found version $XCODE_VERSION"
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        id: setup-java-8
+        with:
+          distribution: "zulu"
+          java-version: "8"
+
+      - uses: actions/setup-java@v4
+        id: setup-java-11
+        with:
+          distribution: "temurin"
+          java-version: "11"
+
+      - uses: actions/setup-java@v4
+        id: setup-java-21
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup env (Linux)
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          set -euo pipefail
+          apt update
+          apt install git -y
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup environment variables
+        id: setup-env
+        run: |
+          # Set version - use input if available, otherwise use default
+          if [ -n "${{ inputs.version || '' }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${{ env.DEFAULT_VERSION }}"
+          fi
+
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            NUKE_CACHE=true
+          elif [ -n "${{ inputs.nuke-cache || '' }}" ]; then
+            NUKE_CACHE="${{ inputs.nuke-cache }}"
+          else
+            NUKE_CACHE="${{ env.DEFAULT_NUKE_CACHE }}"
+          fi
+
+          echo "DEPLOY_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "NUKE_CACHE=$NUKE_CACHE" >> $GITHUB_ENV
+
+          # Setup JDK paths
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "JDK_1_8=$(cygpath -u "${{ steps.setup-java-8.outputs.path }}")" >> $GITHUB_ENV
+          else
+            echo "JDK_1_8=${{ steps.setup-java-8.outputs.path }}" >> $GITHUB_ENV
+          fi
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "JDK_11_0=$(cygpath -u "${{ steps.setup-java-11.outputs.path }}")" >> $GITHUB_ENV
+          else
+            echo "JDK_11_0=${{ steps.setup-java-11.outputs.path }}" >> $GITHUB_ENV
+          fi
+
+
+          # Setup cache directories
+          mkdir -p ../cache/konan
+          echo "KONAN_DATA_DIR=$(realpath ../cache/konan)" >> $GITHUB_ENV
+          mkdir -p ../cache/gradle
+          echo "GRADLE_USER_HOME=$(realpath ../cache/gradle)" >> $GITHUB_ENV
+
+      - name: Env info
+        run: |
+          set -ex
+
+          echo "System: $(uname -a)" >> $GITHUB_STEP_SUMMARY
+          echo "Default Java Version: $(java --version | head -1)" >> $GITHUB_STEP_SUMMARY
+          echo "JAVA_HOME: $JAVA_HOME" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            echo "Local Java Versions:" >> $GITHUB_STEP_SUMMARY
+            echo $(/usr/libexec/java_home -V) >> $GITHUB_STEP_SUMMARY
+            echo "Selected Xcode Version: $(xcodebuild -version | head -n1)" >> $GITHUB_STEP_SUMMARY
+            echo "Xcode 15 Versions: $(/Applications/Xcode-15.0.app/Contents/Developer/usr/bin/xcodebuild -version | head -n1)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "Git Version: $(git --version)" >> $GITHUB_STEP_SUMMARY
+
+          echo "==== Env vars ====" >> $GITHUB_STEP_SUMMARY
+          echo "DEPLOY_VERSION: $DEPLOY_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "NUKE_CACHE: $NUKE_CACHE" >> $GITHUB_STEP_SUMMARY
+          echo "JDK_11_0: $JDK_11_0" >> $GITHUB_STEP_SUMMARY
+          echo "JDK_1_8: $JDK_1_8" >> $GITHUB_STEP_SUMMARY
+          echo "KONAN_DATA_DIR: $KONAN_DATA_DIR" >> $GITHUB_STEP_SUMMARY
+          echo "GRADLE_USER_HOME: $GRADLE_USER_HOME" >> $GITHUB_STEP_SUMMARY
+
+      - name: Nuke cache
+        if: ${{ env.NUKE_CACHE == 'true' }}
+        run: |
+          echo "Cleaning all caches..."
+          rm -rf ../cache/
+          git clean -dfx
+
+      - name: Clean build/test output
+        run: |
+          rm -rf ./build/*
+          rm -rf ./native/native.tests/build/test-results/
+
+      - name: Build kotlin
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 600
+          max_attempts: 16
+          shell: bash
+          command: |
+            bash scripts/kuikly-base/publish-local.sh
+      
+      - name: Upload build/repo
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-maven-repo
+          path: build/repo
+          compression-level: 9
+          if-no-files-found: error
+
+      - name: Generate tests & sanity test
+        run: |
+          ./gradlew --stop
+          ./gradlew :native:native.tests:generateTests :kotlin-native:backend.native:tests:sanity --dependency-verification=off -PdeployVersion=$DEPLOY_VERSION -Pversions.kotlin-native=$DEPLOY_VERSION -PkonanVersion=$DEPLOY_VERSION -Pbootstrap.kotlin.version=$DEPLOY_VERSION -Pkotlin.native.enabled=true -Pbootstrap.local=true -Pbootstrap.local.version=$DEPLOY_VERSION
+
+      - name: Enable parallel opt
+        run: |
+          sed -i '' 's|"${platform\.absolute(platform\.hostString("llvm12"))}/bin/llvm-split"|"/Volumes/disk/git/llvm/third_party_llvm-project/build-used-03/bin/llvm-split"|g' kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/KonanConfig.kt
+          # sed -i '' 's/configuration\.get(BinaryOptions\.splitBCfile) ?: 1u/configuration.get(BinaryOptions.splitBCfile) ?: 2u/' kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/KonanConfig.kt
+
+          echo "==== parallel opt config ====" >> $GITHUB_STEP_SUMMARY
+          echo $(grep -n -C 1 llvm-split kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/KonanConfig.kt) >> $GITHUB_STEP_SUMMARY
+          echo "llvm-split md5: $(md5 -q /Volumes/disk/git/llvm/third_party_llvm-project/build-used-03/bin/llvm-split)" >> $GITHUB_STEP_SUMMARY
+          echo $(grep -n -C 1 splitBCfile kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/KonanConfig.kt) >> $GITHUB_STEP_SUMMARY
+
+      - name: stdlib test
+        continue-on-error: true
+        id: stdlib-test
+        run: |
+          ./gradlew --stop
+          ./gradlew :native:native.tests:test --tests "org.jetbrains.kotlin.konan.test.blackbox.FirStdlibTest" --dependency-verification=off -PdeployVersion=$DEPLOY_VERSION -Pversions.kotlin-native=$DEPLOY_VERSION -PkonanVersion=$DEPLOY_VERSION -Pbootstrap.kotlin.version=$DEPLOY_VERSION -Pkotlin.native.enabled=true -Pbootstrap.local=true -Pbootstrap.local.version=$DEPLOY_VERSION -Pkotlin.internal.native.test.target=ohos_arm64 -Pkotlin.internal.native.test.optimizationMode=OPT --stacktrace
+      
+      - name: move stdlib test result
+        continue-on-error: true
+        run: |
+          mv native/native.tests/build/test-results/test/ native/native.tests/build/test-results/stdlib-test/
+
+      # - name: box test
+      #   continue-on-error: true
+      #   id: box-test
+      #   run: |
+      #     ./gradlew --stop
+      #     ./gradlew :native:native.tests:test --tests "org.jetbrains.kotlin.konan.test.blackbox.FirNativeCodegenBoxTestGenerated" --dependency-verification=off -PdeployVersion=$DEPLOY_VERSION -Pversions.kotlin-native=$DEPLOY_VERSION -PkonanVersion=$DEPLOY_VERSION -Pbootstrap.kotlin.version=$DEPLOY_VERSION -Pkotlin.native.enabled=true -Pbootstrap.local=true -Pbootstrap.local.version=$DEPLOY_VERSION -Pkotlin.internal.native.test.target=ohos_arm64 -Pkotlin.internal.native.test.optimizationMode=OPT --stacktrace
+      
+      # - name: move box test result
+      #   continue-on-error: true
+      #   run: |
+      #     mv native/native.tests/build/test-results/test/ native/native.tests/build/test-results/box-test/
+
+      - name: remaining tests
+        continue-on-error: true
+        id: remaining-tests
+        run: |
+          ./gradlew --stop
+          ./gradlew :native:native.tests:allFirTestsExclude --dependency-verification=off -PdeployVersion=$DEPLOY_VERSION -Pversions.kotlin-native=$DEPLOY_VERSION -PkonanVersion=$DEPLOY_VERSION -Pbootstrap.kotlin.version=$DEPLOY_VERSION -Pkotlin.native.enabled=true -Pbootstrap.local=true -Pbootstrap.local.version=$DEPLOY_VERSION -Pkotlin.internal.native.test.target=ohos_arm64 -Pkotlin.internal.native.test.optimizationMode=OPT --stacktrace
+
+      - name: move remaining tests result
+        continue-on-error: true
+        run: |
+          mv native/native.tests/build/test-results/allFirTestsExclude/ native/native.tests/build/test-results/remaining-fir-test/
+
+      - name: Report test results
+        if: github.event_name != 'pull_request'
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test Results
+          path: native/native.tests/build/test-results/**/*.xml
+          reporter: java-junit
+          fail-on-empty: true
+
+      - name: Upload test results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-test-results
+          path: native/native.tests/build/test-results/
+          if-no-files-found: error
+          compression-level: 9
+
+      - name: Fail if tests failed
+        if: steps.stdlib-test.outcome == 'failure' || steps.box-test.outcome == 'failure' || steps.remaining-tests.outcome == 'failure'
+        run: exit 1

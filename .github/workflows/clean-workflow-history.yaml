@@ -1,0 +1,15 @@
+name: Clean Workflow Runs
+
+on:
+  workflow_dispatch:  # Manually trigger via GitHub UI
+
+jobs:
+  clean_runs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clean all workflow runs
+      uses: dmvict/clean-workflow-runs@v1.0.0
+      with:
+        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        save_min_runs_number: 0     # Delete all runs (set to a higher number to keep some)
+        save_period: 0              # Delete regardless of age (in days; set to a value like 30 to keep recent ones)

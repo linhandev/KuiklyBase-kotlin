@@ -1,0 +1,33 @@
+name: "Black Box Test Report"
+
+on:
+    workflow_run:
+        workflows: ["Black Box Test"]
+        types:
+            - completed
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    actions: read
+    checks: write
+
+jobs:
+    report:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Download ci-test-results artifact
+              if: ${{ github.event_name == 'workflow_run' }}
+              uses: dawidd6/action-download-artifact@v3
+              with:
+                  run_id: ${{ github.event.workflow_run.id }}
+                  name: ci-test-results
+                  path: artifact-content
+
+            - uses: dorny/test-reporter@v2
+              with:
+                  artifact: ci-test-results
+                  name: Compiler black box test
+                  path: "*.xml"
+                  reporter: java-junit
+                  fail-on-empty: true
