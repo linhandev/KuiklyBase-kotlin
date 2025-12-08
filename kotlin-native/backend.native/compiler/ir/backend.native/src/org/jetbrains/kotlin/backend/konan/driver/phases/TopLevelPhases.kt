@@ -383,7 +383,8 @@ internal fun PhaseEngine<NativeGenerationState>.runBackendCodegen(module: IrModu
  * @return absolute path to object file.
  */
 private fun PhaseEngine<NativeGenerationState>.runCodegen(module: IrModuleFragment) {
-    val optimize = context.shouldOptimize()
+    // val optimize = context.shouldOptimize()
+    val optimize = false
     module.files.forEach {
         runPhase(ReturnsInsertionPhase, it)
     }

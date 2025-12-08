@@ -6,6 +6,7 @@
 package org.jetbrains.kotlin.backend.konan
 
 import org.jetbrains.kotlin.backend.konan.driver.PhaseContext
+import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.konan.exec.Command
 import org.jetbrains.kotlin.konan.target.*
 import java.io.File
@@ -21,6 +22,7 @@ internal class BitcodeCompiler(
     private val platform = config.platform
     private val optimize = context.shouldOptimize()
     private val debug = config.debug
+    private val incrementalBuild = config.configuration.get(CommonConfigurationKeys.INCREMENTAL_COMPILATION) ?: false
 
     private val overrideClangOptions =
             config.configuration.getList(KonanConfigKeys.OVERRIDE_CLANG_OPTIONS)
@@ -50,6 +52,7 @@ internal class BitcodeCompiler(
         } else {
             platform.targetTriple
         }
+        // clang flto
         val flags = overrideClangOptions.takeIf(List<String>::isNotEmpty)
                 ?: mutableListOf<String>().apply {
                     addNonEmpty(configurables.clangFlags)
