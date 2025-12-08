@@ -21,6 +21,7 @@ import java.lang.ProcessBuilder
 import java.lang.ProcessBuilder.Redirect
 import org.jetbrains.kotlin.konan.exec.Command
 import org.jetbrains.kotlin.konan.file.*
+import java.nio.file.Files
 
 typealias ObjectFile = String
 typealias ExecutableFile = String
@@ -202,6 +203,18 @@ class OhosLinker(targetProperties: OhosConfigurables) : LinkerFlags(targetProper
         val dynamic = kind == LinkerOutputKind.DYNAMIC_LIBRARY
         val targetToolchain = absoluteTargetToolchain
         val crtPrefix = "$absoluteTargetSysRoot/$crtFilesLocation"
+        // region Tencent Code
+        // There can be thousands of static libs when incremental debug build is enabled. Write them to a file to prevent ld command from
+        // becoming too long.
+        val librariesAsFile = if (libraries.size > 16) {
+            val tempFile = Files.createTempFile("libraries", ".txt").toFile()
+            tempFile.deleteOnExit()
+            tempFile.writeText(libraries.joinToString("\n"))
+            listOf("@${tempFile.absolutePath}")
+        } else {
+            libraries
+        }
+        // endregion
         // TODO: Can we extract more to the konan.configurables?
         return listOf(Command(absoluteLinker).apply {
             +"--sysroot=${absoluteTargetSysRoot}"
@@ -224,10 +237,15 @@ class OhosLinker(targetProperties: OhosConfigurables) : LinkerFlags(targetProper
             +specificLibs
             if (optimize) +linkerOptimizationFlags
             if (!debug) +linkerNoDebugFlags
+            // region Tencent Code
+            if (debug) +linkerDebugFlags
+            // endregion
             if (dynamic) +linkerDynamicFlags
             if (dynamic) +"--soname=${File(executable).name}"
             +objectFiles
-            +libraries
+            // region Tencent Code
+            +librariesAsFile
+            // endregion
             +linkerArgs
             +linkerKonanFlags
             when (sanitizer) {
