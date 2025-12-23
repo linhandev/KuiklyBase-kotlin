@@ -32,12 +32,12 @@ enum class LinkerOutputKind {
     EXECUTABLE
 }
 
-// Here we take somewhat unexpected approach - we create the thin
-// library, and then repack it during post-link phase.
-// This way we ensure .a inputs are properly processed.
 private fun staticGnuArCommands(ar: String, executable: ExecutableFile,
                                 objectFiles: List<ObjectFile>, libraries: List<String>) = when {
         HostManager.hostIsMingw -> {
+            // Here we take somewhat unexpected approach - we create the thin
+            // library, and then repack it during post-link phase.
+            // This way we ensure .a inputs are properly processed.
             val temp = executable.replace('/', '\\') + "__"
             val arWindows = ar.replace('/', '\\')
             listOf(
@@ -50,14 +50,19 @@ private fun staticGnuArCommands(ar: String, executable: ExecutableFile,
                     },
                     Command("cmd", "/c", "del", "/q", temp))
         }
-        HostManager.hostIsLinux || HostManager.hostIsMac -> listOf(
-                     Command(ar, "cqT", executable).apply {
-                        +objectFiles
-                        +libraries
-                     },
-                     Command("/bin/sh", "-c").apply {
-                        +"printf 'create $executable\\naddlib $executable\\nsave\\nend' | $ar -M"
-                     })
+        HostManager.hostIsLinux || HostManager.hostIsMac -> {
+            // Create a regular archive and use [L] modifier for adding libraries
+            // to flatten nested archives. The [L] modifier extracts archive contents
+            // instead of adding archives as-is, ensuring .a inputs are properly processed.
+            val commands = mutableListOf<Command>()
+            if (objectFiles.isNotEmpty()) {
+                commands.add(Command(ar, "qcs", executable).apply { +objectFiles })
+            }
+            if (libraries.isNotEmpty()) {
+                commands.add(Command(ar, "qL", executable).apply { +libraries })
+            }
+            commands
+        }
         else -> TODO("Unsupported host ${HostManager.host}")
     }
 
