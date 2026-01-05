@@ -1,0 +1,8 @@
+{
+    "cmake.ignoreCMakeListsMissing": true,
+    "clangd.arguments": [
+        "--query-driver=${env:KONAN_DATA_DIR}/dependencies/llvm-1201-macos-aarch64/bin/clang++",
+        "--query-driver=${env:HOME}/.konan/dependencies/llvm-1201-macos-aarch64/bin/clang++"
+    ],
+    // "clangd.path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clangd"
+}
