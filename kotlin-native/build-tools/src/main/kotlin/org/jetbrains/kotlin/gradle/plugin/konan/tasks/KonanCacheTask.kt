@@ -119,6 +119,9 @@ abstract class KonanCacheTask @Inject constructor(
         )
         if (makePerFileCache)
             args += "-Xmake-per-file-cache"
+        if (project.findProperty("kotlin.native.isNativeRuntimeDebugInfoEnabled") == "true") {
+            args += "-Xbinary=stripDebugInfoFromNativeLibs=false"
+        }
         args += additionalCacheFlags
         args += cachedLibraries.map { "-Xcached-library=${it.key},${it.value}" }
         KonanCliCompilerRunner(fileOperations, execOperations, logger, isolatedClassLoadersService, konanHome).run(args)
