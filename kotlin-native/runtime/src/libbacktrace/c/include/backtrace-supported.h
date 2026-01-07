@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.  */
    be #include'd to see whether the backtrace library will be able to
    get a backtrace and produce symbolic information.  */
 
-
 /* BACKTRACE_SUPPORTED will be #define'd as 1 if the backtrace library
    should work, 0 if it will not.  Libraries may #include this to make
    other arrangements.  */
