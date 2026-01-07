@@ -358,6 +358,9 @@ struct elf_syminfo_data {
     struct elf_symbol* symbols;
     /* The number of symbols.  */
     size_t count;
+    /* Address range for quick filtering (min inclusive, max exclusive).  */
+    uintptr_t min_address;
+    uintptr_t max_address;
 };
 
 /* A view that works for either a file or memory.  */
@@ -611,6 +614,15 @@ static int elf_initialize_syminfo(
     sdata->next = NULL;
     sdata->symbols = elf_symbols;
     sdata->count = elf_symbol_count;
+    
+    /* Compute address range for quick filtering.  */
+    if (elf_symbol_count > 0) {
+        sdata->min_address = elf_symbols[0].address;
+        sdata->max_address = elf_symbols[elf_symbol_count - 1].address + elf_symbols[elf_symbol_count - 1].size;
+    } else {
+        sdata->min_address = 0;
+        sdata->max_address = 0;
+    }
 
     return 1;
 }
@@ -658,6 +670,9 @@ static void elf_syminfo(
 
     if (!state->threaded) {
         for (edata = (struct elf_syminfo_data*)state->syminfo_data; edata != NULL; edata = edata->next) {
+            /* Skip this SO if the address is outside its range.  */
+            if (edata->count > 0 && (addr < edata->min_address || addr >= edata->max_address))
+                continue;
             sym = ((struct elf_symbol*)bsearch(&addr, edata->symbols, edata->count, sizeof(struct elf_symbol), elf_symbol_search));
             if (sym != NULL) break;
         }
@@ -669,6 +684,12 @@ static void elf_syminfo(
             edata = backtrace_atomic_load_pointer(pp);
             if (edata == NULL) break;
 
+            /* Skip this SO if the address is outside its range.  */
+            if (edata->count > 0 && (addr < edata->min_address || addr >= edata->max_address)) {
+                pp = &edata->next;
+                continue;
+            }
+            
             sym = ((struct elf_symbol*)bsearch(&addr, edata->symbols, edata->count, sizeof(struct elf_symbol), elf_symbol_search));
             if (sym != NULL) break;
 
