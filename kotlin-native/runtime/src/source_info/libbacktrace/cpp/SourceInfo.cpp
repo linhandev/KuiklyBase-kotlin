@@ -5,7 +5,6 @@
 
 #include "SourceInfo.h"
 #include "backtrace.h"
-
 #include <cstring>
 
 extern "C" int Kotlin_getSourceInfo_libbacktrace(void* addr, SourceInfo *result, int result_size) {
@@ -13,6 +12,16 @@ extern "C" int Kotlin_getSourceInfo_libbacktrace(void* addr, SourceInfo *result,
     auto ignore_error = [](void*, const char*, int){};
     static auto state = backtrace_create_state(nullptr, 1, ignore_error, nullptr);
     if (!state) return 0;
+    
+    // when result_size == -1, only trigger initialization without doing actual symbolication
+    if (result_size == -1) {
+        auto init_only_callback = [](void*, uintptr_t, const char*, int, int, const char*, int) -> int {
+            return 1; // Return non-zero to stop immediately after init
+        };
+        backtrace_pcinfo(state, 0, init_only_callback, ignore_error, nullptr);
+        return 0;
+    }
+    
     struct callback_arg_t {
         SourceInfo *result;
         int result_ptr;

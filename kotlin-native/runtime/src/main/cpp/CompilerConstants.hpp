@@ -110,6 +110,7 @@ uint32_t auxGCThreads() noexcept;
 uint32_t concurrentMarkMaxIterations() noexcept;
 bool suspendFunctionsFromAnyThreadFromObjCEnabled() noexcept;
 AppStateTracking appStateTracking() noexcept;
+bool getSourceInfoEnabled() noexcept;
 int getSourceInfo(void* addr, SourceInfo *result, int result_size) noexcept;
 bool mimallocUseDefaultOptions() noexcept;
 bool mimallocUseCompaction() noexcept;

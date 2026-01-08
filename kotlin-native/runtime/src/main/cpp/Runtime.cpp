@@ -16,9 +16,6 @@
 #include "RuntimePrivate.hpp"
 #include "Worker.h"
 #include "KString.h"
-// region Tencent Code
-#include "StackTrace.hpp"
-// endregion
 #include <atomic>
 #include <cstdlib>
 #include <thread>
@@ -88,18 +85,6 @@ std::atomic<GlobalRuntimeStatus> globalRuntimeStatus = kGlobalRuntimeUninitializ
 // region Tencent Code
 std::atomic<std::string*> firstRuntimesStackTrace;
 
-void InitFirstRuntimesStackTrace() {
-    constexpr int kSkipFrames = 0;
-    StackTrace trace = StackTrace<>::current(kSkipFrames);
-    auto stackTraceStrings = GetStackTraceStrings(trace.data());
-    auto stackTrace = new std::string();
-    for (const auto& stack : stackTraceStrings) {
-        stackTrace->append(stack);
-        stackTrace->append("\n");
-    }
-    firstRuntimesStackTrace.store(stackTrace, std::memory_order_seq_cst);
-}
-
 extern "C" OBJ_GETTER0(Kotlin_getFirstRuntimeStackTraceString) {
     auto stackTrace = firstRuntimesStackTrace.load(std::memory_order_seq_cst);
     if (stackTrace == nullptr) {
@@ -135,9 +120,12 @@ RuntimeState* initRuntime() {
   // Keep global variables in state as well.
   if (firstRuntime) {
     InitOrDeinitGlobalVariables(INIT_GLOBALS, result->memoryState);
-    // region Tencent Code
-    InitFirstRuntimesStackTrace();
-    // endregion
+    // Initialize symbolication info in the background
+    if (kotlin::compiler::getSourceInfoEnabled()) {
+      std::thread([]() {
+        kotlin::compiler::getSourceInfo(nullptr, nullptr, -1);
+      }).detach();
+    }
   }
   InitOrDeinitGlobalVariables(INIT_THREAD_LOCAL_GLOBALS, result->memoryState);
   RuntimeAssert(result->status == RuntimeStatus::kUninitialized, "Runtime must still be in the uninitialized state");

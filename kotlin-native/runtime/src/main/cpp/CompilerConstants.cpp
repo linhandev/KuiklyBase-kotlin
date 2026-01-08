@@ -73,8 +73,12 @@ ALWAYS_INLINE bool compiler::printToAndroidLogcat() noexcept {
 }
 #endif
 
+ALWAYS_INLINE bool compiler::getSourceInfoEnabled() noexcept {
+    return Kotlin_getSourceInfo_Function != nullptr;
+}
+
 ALWAYS_INLINE int compiler::getSourceInfo(void* addr, SourceInfo *result, int result_size) noexcept {
-    if (Kotlin_getSourceInfo_Function == nullptr) {
+    if (!getSourceInfoEnabled()) {
         return 0;
     } else {
         return Kotlin_getSourceInfo_Function(addr, result, result_size);
