@@ -75,6 +75,17 @@ void LLVMPrintAllTimersToStdOut() {
     llvm::TimerGroup::printAll(llvm::outs());
 }
 
+int LLVMPrintAllTimersToFile(const char* filename) {
+    std::error_code EC;
+    llvm::raw_fd_ostream OS(filename, EC, llvm::sys::fs::OF_Text);
+    if (EC) {
+        return EC.value();
+    }
+    llvm::TimerGroup::printAll(OS);
+    OS.close();
+    return 0;
+}
+
 void LLVMClearAllTimers() {
     llvm::TimerGroup::clearAll();
 }

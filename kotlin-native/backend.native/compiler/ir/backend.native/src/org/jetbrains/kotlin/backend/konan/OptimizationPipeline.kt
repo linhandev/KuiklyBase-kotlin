@@ -235,6 +235,10 @@ abstract class LlvmOptimizationPipeline(
             LLVMRunPassManager(passManager, llvmModule)
             if (config.timePasses) {
                 LLVMPrintAllTimersToStdOut()
+                val fileStatus = LLVMPrintAllTimersToFile(pipelineName)
+                if (fileStatus != 0) {
+                    logger?.log { "Warning: Failed to write timer results to file '$pipelineName' (error code: $fileStatus)" }
+                }
                 LLVMClearAllTimers()
             }
         } finally {
