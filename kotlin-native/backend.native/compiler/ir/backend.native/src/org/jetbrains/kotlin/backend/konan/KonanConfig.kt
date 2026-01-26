@@ -573,7 +573,7 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
     internal val incrementalCacheDirectory = incrementalCacheRootDirectory?.child(userCacheFlavorString)?.also { it.mkdirs() }
 
     internal val ignoreCacheReason = when {
-        optimizationsEnabled -> "for optimized compilation"
+        // optimizationsEnabled -> "for optimized compilation"
         sanitizer != null -> "with sanitizers enabled"
         runtimeLogsEnabled -> "with runtime logs"
         checkStateAtExternalCalls -> "with external calls state checker"
